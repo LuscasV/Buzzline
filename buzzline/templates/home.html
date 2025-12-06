@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-8">
+
+
+    <h1>Beeps!</h1>
+    <br />
+
+    {% for beep in beeps %}
+    <div class="alert alert-dark" role="alert">
+        {{ beep.body }}<br />
+        <small class="text-muted">
+            ({{ beep.created_at}}) Por @{{ beep.user.username}}
+        </small>
+        </div><br /> <br />
+
+    {% endfor %}
+
+    </div>
+
+
+    <div class="col-4">
+                <br /><br /><br />
+            {% if form %}
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p}}
+    <button type="submit" class="btn btn-secondary">Beepar!</button>
+
+</form>
+{% endif %}
+    </div>
+{% endblock %}
