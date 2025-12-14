@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Profile, Beep
 from .forms import BeepForm, SignUpForm, ProfilePicForm
@@ -113,4 +113,24 @@ def update_user(request):
     else:
         messages.success(request, ("Você precisa estar logado para acessar essa página!"))
         return redirect('home')
-    
+
+def beep_like(request, pk):
+    if request.user.is_authenticated:
+        beep = get_object_or_404(Beep, id=pk)
+        if beep.likes.filter(id=request.user.id):
+            beep.likes.remove(request.user)
+        else:
+            beep.likes.add(request.user)
+        return redirect(request.META.get('HTTP_REFERER'))
+    else:
+        messages.success(request, ("Você precisa estar logado para acessar essa página!"))
+        return redirect('home')
+
+
+def beep_show(request, pk):
+    beep = get_object_or_404(Beep, id=pk)
+    if beep:
+        return render(request, 'show_beep.html', {"beep":beep })
+    else:
+        messages.success(request, ("Esse Beep não existe!"))
+        return redirect('home')

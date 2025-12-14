@@ -5,11 +5,17 @@ from django.contrib.auth.models import User
 
 # Profile Extras formulario
 class ProfilePicForm(forms.ModelForm):
-    profile_image = forms.ImageField(label="Profile Picture")
-
+    profile_image = forms.ImageField(label="Foto de Perfil")
+    
+    profile_bio = forms.CharField(label="Bio do perfil", widget=forms.Textarea(attrs={'class': 'form-control', 'placeholder': 'Bio do Perfil'}))
+    homepage_link = forms.CharField(label="", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Link do Website'}))
+    facebook_link = forms.CharField(label="", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Link do Facebook'}))
+    instagram_link = forms.CharField(label="", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Link do Instagram'}))
+    linkedin_link = forms.CharField(label="", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Link do Linkedin'}))
+    
     class Meta:
         model = Profile
-        fields = ('profile_image', )
+        fields = ('profile_image', 'profile_bio', 'homepage_link', 'facebook_link', 'instagram_link', 'linkedin_link')
 
 class BeepForm(forms.ModelForm):
     body = forms.CharField(required=True,
@@ -24,7 +30,7 @@ class BeepForm(forms.ModelForm):
     
     class Meta:
         model = Beep
-        exclude = ("user",)
+        exclude = ("user", "likes",)
 
 
 class SignUpForm(UserCreationForm):
