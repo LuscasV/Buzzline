@@ -85,3 +85,55 @@ class SignUpForm(UserCreationForm):
             'Digite a mesma senha de antes para verificação.'
             '</small></span>'
         )
+
+class UpdateUserForm(forms.ModelForm):
+    email = forms.EmailField(
+        label="",
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Email'
+        })
+    )
+
+    first_name = forms.CharField(
+        label="",
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Nome'
+        })
+    )
+
+    last_name = forms.CharField(
+        label="",
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Sobrenome'
+        })
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'email')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields['username'].widget.attrs['class'] = 'form-control'
+        self.fields['username'].widget.attrs['placeholder'] = 'Nome de usuário'
+        self.fields['username'].label = ''
+        self.fields['username'].help_text = (
+            '<span class="form-text text-muted"><small>'
+            'Obrigatório. 150 caracteres ou menos. Somente letras, dígitos e @/./+/-/_.'
+            '</small></span>'
+        )
+
+    def clean_username(self):
+        username = self.cleaned_data['username']
+        user_id = self.instance.id
+
+        if User.objects.exclude(id=user_id).filter(username=username).exists():
+            raise forms.ValidationError("Já existe um usuário com esse nome.")
+
+        return username

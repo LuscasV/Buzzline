@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Profile, Beep
-from .forms import BeepForm, SignUpForm, ProfilePicForm
+from .forms import BeepForm, SignUpForm, ProfilePicForm, UpdateUserForm
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.forms import UserCreationForm
 from django import forms
@@ -32,6 +33,41 @@ def profile_list(request):
         messages.success(request, ("Você precisa estar logado para ver essa página"))
         return redirect('home')
 
+
+def unfollow(request, pk):
+    if request.user.is_authenticated:
+        # Pegar o perfil pra parar de seguir
+        profile = Profile.objects.get(user_id=pk)
+        # Deixar de seguir o usuario
+        request.user.profile.follows.remove(profile)
+        # Salvar nosso perfil
+        request.user.profile.save()
+
+        #Mensagem de retorno!
+        messages.success(request, (f"Você deixou de seguir {profile.user.username} "))
+        return redirect(request.META.get("HTTP_REFERER"))
+
+    else:
+        messages.success(request, ("Você precisa estar logado para acessar essa página!"))
+        return redirect('home')
+
+def follow(request, pk):
+    if request.user.is_authenticated:
+        # Pegar o perfil pra parar de seguir
+        profile = Profile.objects.get(user_id=pk)
+        # Deixar de seguir o usuario
+        request.user.profile.follows.add(profile)
+        # Salvar nosso perfil
+        request.user.profile.save()
+
+        #Mensagem de retorno!
+        messages.success(request, (f"Você Seguiu {profile.user.username} "))
+        return redirect(request.META.get("HTTP_REFERER"))
+
+    else:
+        messages.success(request, ("Você precisa estar logado para acessar essa página!"))
+        return redirect('home')
+
 def profile(request, pk):
     if request.user.is_authenticated:
         profile = Profile.objects.get(user_id=pk)
@@ -51,6 +87,32 @@ def profile(request, pk):
             # Salvar o Perfil
             current_user_profile.save()
         return render(request, "profile.html", {"profile":profile, "beeps":beeps})
+    else:
+        messages.success(request, ("Você precisa estar logado para ver essa página"))
+        return redirect('home')
+
+def followers(request, pk):
+    if request.user.is_authenticated:
+        if request.user.id == pk:
+            profiles = Profile.objects.get(user_id=pk)
+            return render(request, 'followers.html', {"profiles":profiles })
+        else:
+            messages.success(request, ("Essa não é a página do seu perfil..."))
+            return redirect('home')
+
+    else:
+        messages.success(request, ("Você precisa estar logado para ver essa página"))
+        return redirect('home')
+    
+def follows(request, pk):
+    if request.user.is_authenticated:
+        if request.user.id == pk:
+            profiles = Profile.objects.get(user_id=pk)
+            return render(request, 'follows.html', {"profiles":profiles })
+        else:
+            messages.success(request, ("Essa não é a página do seu perfil..."))
+            return redirect('follows')
+
     else:
         messages.success(request, ("Você precisa estar logado para ver essa página"))
         return redirect('home')
@@ -113,6 +175,32 @@ def update_user(request):
     else:
         messages.success(request, ("Você precisa estar logado para acessar essa página!"))
         return redirect('home')
+    
+# @login_required # CORREÇÃO DO UPDATE USER #
+# def update_user(request):
+#     current_user = request.user
+#     profile_user = Profile.objects.get(user=current_user)
+
+#     if request.method == 'POST':
+#         user_form = UpdateUserForm(request.POST, instance=current_user)
+#         profile_form = ProfilePicForm(
+#             request.POST, request.FILES, instance=profile_user
+#         )
+
+#         if user_form.is_valid() and profile_form.is_valid():
+#             user_form.save()
+#             profile_form.save()
+#             messages.success(request, "Perfil editado com sucesso!")
+#             return redirect('profile', current_user.id)
+#     else:
+#         user_form = UpdateUserForm(instance=current_user)
+#         profile_form = ProfilePicForm(instance=profile_user)
+
+#     return render(request, "update_user.html", {
+#         'user_form': user_form,
+#         'profile_form': profile_form
+#     })
+
 
 def beep_like(request, pk):
     if request.user.is_authenticated:
@@ -133,4 +221,45 @@ def beep_show(request, pk):
         return render(request, 'show_beep.html', {"beep":beep })
     else:
         messages.success(request, ("Esse Beep não existe!"))
+        return redirect('home')
+
+def delete_beep(request, pk):
+    if request.user.is_authenticated:
+        beep = get_object_or_404(Beep, id=pk)
+        # Check para ver se o usuário é dono do beep
+        if request.user.username == beep.user.username:
+            # Deletar o Beep!
+            beep.delete()
+            messages.success(request, ("O Beep foi deletado com sucesso!"))
+            return redirect(request.META.get('HTTP_REFERER'))
+        else:
+            messages.success(request, ("Esse Beep não pertence a você!"))
+            return redirect('home')
+    else:
+        messages.success(request, ("Por favor, faça o login para continuar..."))
+        return redirect(request.META.get('HTTP_REFERER'))
+
+def edit_beep(request, pk):
+    if request.user.is_authenticated:
+        # Capturando o Beep
+        beep = get_object_or_404(Beep, id=pk)
+        # Check para ver se o usuário é dono do beep
+        if request.user.username == beep.user.username:
+            
+            form = BeepForm(request.POST or None, instance=beep)
+            if request.method == "POST":
+                if form.is_valid():
+                    beep = form.save(commit=False)
+                    beep.user = request.user
+                    beep.save()
+                    messages.success(request, ("Seu Beep foi editado!"))
+                    return redirect('home')
+            else:
+                return render(request, "edit_beep.html", {'form': form, 'beep':beep })
+            
+        else:
+            messages.success(request, ("Esse Beep não pertence a você!"))
+            return redirect('home')
+    else:
+        messages.success(request, ("Por favor, faça o login para continuar..."))
         return redirect('home')
