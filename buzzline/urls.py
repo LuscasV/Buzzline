@@ -18,4 +18,7 @@ urlpatterns = [
     path('follow/<int:pk>', views.follow, name="follow"),
     path('delete_beep/<int:pk>', views.delete_beep, name="delete_beep"),
     path('edit_beep/<int:pk>', views.edit_beep, name="edit_beep"),
+    path('search/', views.search, name='search'),
+    path('search_user/', views.search_user, name='search_user'),
 ]
+

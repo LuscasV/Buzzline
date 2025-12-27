@@ -158,48 +158,48 @@ def register_user(request):
     return render(request, "register.html", {'form':form})
 
 
-def update_user(request):
-    # lógica para só ser possível acessar o update_user se estiver logado
-    if request.user.is_authenticated:
-        current_user = User.objects.get(id=request.user.id)
-        profile_user = Profile.objects.get(user__id=request.user.id)
-        user_form = SignUpForm(request.POST or None, request.FILES or None, instance=current_user)
-        profile_form = ProfilePicForm(request.POST or None, request.FILES or None, instance=profile_user)
-        if user_form.is_valid() and profile_form.is_valid():
-            user_form.save()
-            profile_form.save()
-            login(request, current_user)
-            messages.success(request, ("Perfil editado com sucesso!"))
-            return redirect('home')
-        return render(request, "update_user.html", {'user_form': user_form, 'profile_form':profile_form})
-    else:
-        messages.success(request, ("Você precisa estar logado para acessar essa página!"))
-        return redirect('home')
-    
-# @login_required # CORREÇÃO DO UPDATE USER #
 # def update_user(request):
-#     current_user = request.user
-#     profile_user = Profile.objects.get(user=current_user)
-
-#     if request.method == 'POST':
-#         user_form = UpdateUserForm(request.POST, instance=current_user)
-#         profile_form = ProfilePicForm(
-#             request.POST, request.FILES, instance=profile_user
-#         )
-
+#     # lógica para só ser possível acessar o update_user se estiver logado
+#     if request.user.is_authenticated:
+#         current_user = User.objects.get(id=request.user.id)
+#         profile_user = Profile.objects.get(user__id=request.user.id)
+#         user_form = SignUpForm(request.POST or None, request.FILES or None, instance=current_user)
+#         profile_form = ProfilePicForm(request.POST or None, request.FILES or None, instance=profile_user)
 #         if user_form.is_valid() and profile_form.is_valid():
 #             user_form.save()
 #             profile_form.save()
-#             messages.success(request, "Perfil editado com sucesso!")
-#             return redirect('profile', current_user.id)
+#             login(request, current_user)
+#             messages.success(request, ("Perfil editado com sucesso!"))
+#             return redirect('home')
+#         return render(request, "update_user.html", {'user_form': user_form, 'profile_form':profile_form})
 #     else:
-#         user_form = UpdateUserForm(instance=current_user)
-#         profile_form = ProfilePicForm(instance=profile_user)
+#         messages.success(request, ("Você precisa estar logado para acessar essa página!"))
+#         return redirect('home')
+    
+@login_required # CORREÇÃO DO UPDATE USER #
+def update_user(request):
+    current_user = request.user
+    profile_user = Profile.objects.get(user=current_user)
 
-#     return render(request, "update_user.html", {
-#         'user_form': user_form,
-#         'profile_form': profile_form
-#     })
+    if request.method == 'POST':
+        user_form = UpdateUserForm(request.POST, instance=current_user)
+        profile_form = ProfilePicForm(
+            request.POST, request.FILES, instance=profile_user
+        )
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request, "Perfil editado com sucesso!")
+            return redirect('profile', current_user.id)
+    else:
+        user_form = UpdateUserForm(instance=current_user)
+        profile_form = ProfilePicForm(instance=profile_user)
+
+    return render(request, "update_user.html", {
+        'user_form': user_form,
+        'profile_form': profile_form
+    })
 
 
 def beep_like(request, pk):
@@ -263,3 +263,24 @@ def edit_beep(request, pk):
     else:
         messages.success(request, ("Por favor, faça o login para continuar..."))
         return redirect('home')
+    
+def search(request):
+    if request.method == "POST":
+        # CAPTURANDO O CAMPO INPU DO FORMULARIO
+        search = request.POST['search']
+        # PROCURAR O BANCO DE DADOS
+        searched = Beep.objects.filter(body__contains = search)
+        return render(request, 'search.html', {'search':search, 'searched': searched})
+    else:
+        return render(request, 'search.html', {})
+
+def search_user(request):
+    if request.method == "POST":
+        # CAPTURANDO O CAMPO INPU DO FORMULARIO
+        search = request.POST['search']
+        # PROCURAR O BANCO DE DADOS
+        searched = User.objects.filter(username__contains = search)
+        
+        return render(request, 'search_user.html', {'search':search, 'searched': searched})
+    else:
+        return render(request, 'search_user.html', {})
