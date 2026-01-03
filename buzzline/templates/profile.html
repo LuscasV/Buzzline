@@ -30,7 +30,7 @@
                             {{ beep.body }}<br />
                             <small class="text-muted">
                                 ({{ beep.created_at}}) Por @{{ beep.user.username}}
-                                - {{ beep.number_of_likes }} Likes -
+                                - {{ beep.number_of_likes }}
 
                                 {% if user in beep.likes.all %}
                                 <a href="{% url 'beep_like' beep.id %}"><i class="fa-solid fa-heart"
@@ -40,8 +40,9 @@
                                         style="color: red;"></i></a>
                                 {% endif %}
                                 &nbsp;&nbsp;
-                                <a href="{% url 'beep_show' beep.id %}">
-                                    <i class="fa-solid fa-share" style="color: gray;"></i></a>
+                                <!-- ÍCONE DE COMENTÁRIOS -->
+                                <a href="{% url 'beep_comment' beep.id %}"><i class="fa-regular fa-comment" style="color: gray;"></i></a>
+                                {{ beep.number_of_comments }}
 
                                 {% if request.user.username == profile.user.username %}
                                     &nbsp;&nbsp;

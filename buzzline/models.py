@@ -15,6 +15,10 @@ class Beep(models.Model):
     # Contador de likes
     def number_of_likes(self):
         return self.likes.count()
+    
+    # Contador de comentários
+    def number_of_comments(self):
+        return self.comments.count()
 
     def __str__(self):
         return(
@@ -53,5 +57,28 @@ def create_profile(sender, instance, created, **kwargs):
         # Os usuários tem que seguir eles mesmos quando criados
         user_profile.follows.set([instance.profile.id])
         user_profile.save()
+        
+
+class Comment(models.Model):
+    beep = models.ForeignKey(
+        Beep,
+        related_name='comments',
+        on_delete=models.CASCADE
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
+    body = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    likes = models.ManyToManyField(User, related_name='comment_likes', blank=True)
+    
+    def number_of_likes(self):
+        return self.likes.count()
+
+    def __str__(self):
+        return f'{self.user.username} comentou'
+
 
 post_save.connect(create_profile, sender=User)

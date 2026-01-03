@@ -20,5 +20,11 @@ urlpatterns = [
     path('edit_beep/<int:pk>', views.edit_beep, name="edit_beep"),
     path('search/', views.search, name='search'),
     path('search_user/', views.search_user, name='search_user'),
+    path('beep_comment/<int:pk>', views.beep_comment, name='beep_comment'),
+    path('comment_like/<int:pk>', views.comment_like, name='comment_like'),
+    path('delete_comment/<int:pk>', views.delete_comment, name='delete_comment'),
+    path('edit_comment/<int:pk>/', views.edit_comment, name='edit_comment'),
+
+
 ]
 

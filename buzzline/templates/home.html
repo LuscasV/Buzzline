@@ -5,61 +5,67 @@
     <div class="row">
         <div class="col-8">
 
-
             <h1>Beeps!</h1>
             <br />
 
             {% for beep in beeps %}
             <div class="alert alert-dark" role="alert">
-                <div class="container"> <!--DEIXANDO A IMAGEM E CSS NOS BEEPS -->
+                <div class="container">
                     <div class="row">
                         <div class="col-1">
                             {% if beep.user.profile.profile_image %}
-                            <img src="{{ beep.user.profile.profile_image.url }}" width="50" height="50" class="rounded-circle"
-                                alt="{{ profile.user.username}}">
-
+                                <img src="{{ beep.user.profile.profile_image.url }}"
+                                    width="50" height="50"
+                                    class="rounded-circle"
+                                    alt="{{ beep.user.username }}">
                             {% else %}
-                            <img src="{% static 'images/default_profile_pic.png' %}" width="50" height="50"
-                                class="rounded-circle" alt="{{ profile.user.username}}">
+                                <img src="{% static 'images/default_profile_pic.png' %}"
+                                    width="50" height="50"
+                                    class="rounded-circle"
+                                    alt="{{ beep.user.username }}">
                             {% endif %}
-                            
                         </div>
+
                         <div class="col-11">
-
                             {{ beep.body }}<br />
+
                             <small class="text-muted">
-                                ({{ beep.created_at}}) Por @{{ beep.user.username}}
-                                &nbsp;&nbsp; {{ beep.number_of_likes }}
+                                ({{ beep.created_at }}) Por @{{ beep.user.username }}
 
-                                {% if user in beep.likes.all %}
-                                <a href="{% url 'beep_like' beep.id %}"><i class="fa-solid fa-heart" style="color: red;"></i></a>
-                                {% else%}
-                                <a href="{% url 'beep_like' beep.id %}"> <i class="fa fa-heart-o" style="color: red;"></i></a>
-                                {% endif %}
                                 &nbsp;&nbsp;
-                                <a href="{% url 'beep_show' beep.id %}"><i class="fa-solid fa-share" style="color: gray;"></i></a>
-                                
-                            </small>
-                        </div><br /><br />
 
+                                {{ beep.number_of_likes }}
+                                {% if user in beep.likes.all %}
+                                    <a href="{% url 'beep_like' beep.id %}"><i class="fa-solid fa-heart" style="color: red;"></i></a>
+                                {% else %}
+                                    <a href="{% url 'beep_like' beep.id %}"><i class="fa fa-heart-o" style="color: red;"></i></a>
+                                {% endif %}
+
+                                &nbsp;&nbsp;
+
+                                <!-- ÍCONE DE COMENTÁRIOS -->
+                                <a href="{% url 'beep_comment' beep.id %}"><i class="fa-regular fa-comment" style="color: gray;"></i></a>
+                                {{ beep.number_of_comments }}
+
+                            </small>
+                        </div>
+
+                        <br /><br />
                     </div>
                 </div>
             </div>
-
             {% endfor %}
 
         </div>
-
 
         <div class="col-4">
             <br /><br /><br />
             {% if form %}
             <form method="POST">
                 {% csrf_token %}
-                {{ form.as_p}}
+                {{ form.as_p }}
                 <button type="submit" class="btn btn-secondary">Beepar!</button>
-
             </form>
             {% endif %}
         </div>
-        {% endblock %}
+{% endblock %}
