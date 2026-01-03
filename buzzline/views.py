@@ -1,29 +1,49 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Profile, Beep
-from .forms import BeepForm, SignUpForm, ProfilePicForm, UpdateUserForm
+from .models import Profile, Beep, Comment
+from .forms import BeepForm, CommentForm, SignUpForm, ProfilePicForm, UpdateUserForm, CustomPasswordChangeForm
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django import forms
 from django.contrib.auth.models import User
 
 def home(request):
     if request.user.is_authenticated:
         form = BeepForm(request.POST or None)
+
         if request.method == "POST":
             if form.is_valid():
                 beep = form.save(commit=False)
                 beep.user = request.user
                 beep.save()
-                messages.success(request, ("Seu Beep foi postado!"))
+                messages.success(request, "Seu Beep foi postado!")
                 return redirect('home')
 
-        beeps = Beep.objects.all().order_by("-created_at")
-        return render(request, 'home.html', {"beeps": beeps, "form": form,})
+        # 🔹 perfil do usuário logado
+        profile = Profile.objects.get(user=request.user)
+
+        # 🔹 perfis que ele segue
+        following_profiles = profile.follows.all()
+
+        # 🔹 usuários desses perfis
+        following_users = User.objects.filter(
+            profile__in=following_profiles
+        )
+
+        # 🔹 beeps de quem segue + os próprios
+        beeps = Beep.objects.filter(
+            user__in=following_users | User.objects.filter(id=request.user.id)
+        ).order_by('-created_at')
+
+        return render(request, 'home.html', {
+            'beeps': beeps,
+            'form': form
+        })
+
     else:
-        beeps = Beep.objects.all().order_by("-created_at")
-        return render(request, 'home.html', {"beeps": beeps})
+        messages.success(request, "Faça login para ver o feed.")
+        return redirect('login')
 
 def profile_list(request):
     if request.user.is_authenticated:
@@ -187,32 +207,66 @@ def update_user(request):
             request.POST, request.FILES, instance=profile_user
         )
 
+        password_form = CustomPasswordChangeForm(current_user, request.POST)
+
+        # verifica se o usuário tentou alterar a senha
+        password_filled = (
+            request.POST.get('old_password') or
+            request.POST.get('new_password1') or
+            request.POST.get('new_password2')
+        )
+
         if user_form.is_valid() and profile_form.is_valid():
+
             user_form.save()
             profile_form.save()
-            messages.success(request, "Perfil editado com sucesso!")
+
+            # senha é OPCIONAL
+            if password_filled:
+                if password_form.is_valid():
+                    user = password_form.save()
+                    update_session_auth_hash(request, user)
+                else:
+                    # retorna erros da senha no mesmo template
+                    return render(request, "update_user.html", {
+                        'user_form': user_form,
+                        'profile_form': profile_form,
+                        'password_form': password_form
+                    })
+
+            messages.success(request, "Perfil atualizado com sucesso!")
             return redirect('profile', current_user.id)
+
     else:
         user_form = UpdateUserForm(instance=current_user)
         profile_form = ProfilePicForm(instance=profile_user)
+        password_form = CustomPasswordChangeForm(current_user)
 
     return render(request, "update_user.html", {
         'user_form': user_form,
-        'profile_form': profile_form
+        'profile_form': profile_form,
+        'password_form': password_form
     })
 
 
 def beep_like(request, pk):
     if request.user.is_authenticated:
         beep = get_object_or_404(Beep, id=pk)
-        if beep.likes.filter(id=request.user.id):
+
+        if beep.likes.filter(id=request.user.id).exists():
             beep.likes.remove(request.user)
         else:
             beep.likes.add(request.user)
+
         return redirect(request.META.get('HTTP_REFERER'))
+
     else:
-        messages.success(request, ("Você precisa estar logado para acessar essa página!"))
+        messages.success(
+            request,
+            ("Você precisa estar logado para acessar essa página!")
+        )
         return redirect('home')
+
 
 
 def beep_show(request, pk):
@@ -284,3 +338,93 @@ def search_user(request):
         return render(request, 'search_user.html', {'search':search, 'searched': searched})
     else:
         return render(request, 'search_user.html', {})
+
+def beep_comment(request, pk):
+    if request.user.is_authenticated:
+
+        beep = get_object_or_404(Beep, id=pk)
+        comments = beep.comments.all().order_by('created_at')
+
+        if request.method == "POST":
+            form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.user = request.user
+                comment.beep = beep
+                comment.save()
+                messages.success(request, ("Comentário publicado com sucesso!"))
+                return redirect('beep_comment', pk=beep.id)
+        else:
+            form = CommentForm()
+
+        return render(request, 'beep_comment.html', {
+            'beep': beep,
+            'comments': comments,
+            'form': form
+        })
+
+    else:
+        messages.success(request, ("Você precisa estar logado para comentar."))
+        return redirect('login')
+
+def comment_like(request, pk):
+    if request.user.is_authenticated:
+        comment = get_object_or_404(Comment, id=pk)
+
+        if request.user in comment.likes.all():
+            comment.likes.remove(request.user)
+        else:
+            comment.likes.add(request.user)
+
+        # volta para a página do beep
+        return redirect('beep_comment', pk=comment.beep.id)
+
+    else:
+        messages.success(
+            request,
+            ("Você precisa estar logado para curtir comentários.")
+        )
+        return redirect('login')
+
+def delete_comment(request, pk):
+    if request.user.is_authenticated:
+        comment = get_object_or_404(Comment, id=pk)
+
+        # Verifica se é dono do comentário
+        if request.user == comment.user:
+            beep_id = comment.beep.id
+            comment.delete()
+            messages.success(request, ("Comentário removido com sucesso."))
+            return redirect('beep_comment', pk=beep_id)
+        else:
+            messages.success(request, ("Você não pode remover este comentário."))
+            return redirect('beep_comment', pk=comment.beep.id)
+    else:
+        messages.success(request, ("Você precisa estar logado."))
+        return redirect('login')
+    
+
+def edit_comment(request, pk):
+    if request.user.is_authenticated:
+        comment = get_object_or_404(Comment, id=pk)
+
+        # Verifica se o comentário pertence ao usuário
+        if request.user == comment.user:
+            form = CommentForm(request.POST or None, instance=comment)
+
+            if request.method == "POST":
+                if form.is_valid():
+                    form.save()
+                    messages.success(request, ("Comentário editado com sucesso!"))
+                    return redirect('beep_comment', pk=comment.beep.id)
+
+            return render(request, 'edit_comment.html', {
+                'form': form,
+                'comment': comment
+            })
+        else:
+            messages.success(request, ("Você não pode editar esse comentário!"))
+            return redirect('home')
+    else:
+        messages.success(request, ("Por favor, faça login para continuar."))
+        return redirect('login')

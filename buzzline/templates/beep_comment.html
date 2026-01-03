@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container text-center">
+    <div class="row">
+        <div class="col-8 offset-2">
+
+            <h1>Comentários</h1>
+            <br />
+
+            <!-- BEEP ORIGINAL -->
+            <div class="alert alert-dark" role="alert">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-1">
+                            {% if beep.user.profile.profile_image %}
+                                <img src="{{ beep.user.profile.profile_image.url }}"
+                                    width="50" height="50"
+                                    class="rounded-circle"
+                                    alt="{{ beep.user.username }}">
+                            {% else %}
+                                <img src="{% static 'images/default_profile_pic.png' %}"
+                                    width="50" height="50"
+                                    class="rounded-circle"
+                                    alt="{{ beep.user.username }}">
+                            {% endif %}
+                        </div>
+
+                        <div class="col-11">
+                            {{ beep.body }}<br />
+                            <small class="text-muted">
+                                ({{ beep.created_at }}) Por @{{ beep.user.username }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTA DE COMENTÁRIOS -->
+            {% for comment in comments %}
+            <div class="alert alert-secondary" role="alert">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-1">
+                            {% if comment.user.profile.profile_image %}
+                                <img src="{{ comment.user.profile.profile_image.url }}"
+                                    width="40" height="40"
+                                    class="rounded-circle"
+                                    alt="{{ comment.user.username }}">
+                            {% else %}
+                                <img src="{% static 'images/default_profile_pic.png' %}"
+                                    width="40" height="40"
+                                    class="rounded-circle"
+                                    alt="{{ comment.user.username }}">
+                            {% endif %}
+                        </div>
+
+                        <div class="col-11">
+                            {{ comment.body }}<br />
+                            <small class="text-muted">
+                                ({{ comment.created_at }}) Por @{{ comment.user.username }}
+                                
+                                &nbsp;&nbsp;
+
+                                <!-- Contador de likes do comentário -->
+                                {{ comment.number_of_likes }}
+
+                                <!-- Botão para curtir o comentário -->
+                                {% if user in comment.likes.all %}
+                                    <a href="{% url 'comment_like' comment.id %}">
+                                        <i class="fa-solid fa-heart" style="color:red;"></i></a>
+                                {% else %}
+                                    <a href="{% url 'comment_like' comment.id %}">
+                                        <i class="fa fa-heart-o" style="color:red;"></i></a>
+                                {% endif %}
+
+                                <!-- Botão remover o comentário -->
+                                {% if user == comment.user %}
+                                &nbsp;&nbsp;
+                                    <a href="{% url 'delete_comment' comment.id %}">
+                                        <i class="fa-solid fa-trash" style="color:gray;"></i></a>
+                                {% endif %}
+
+                                <!-- Botão para editar o comentário -->
+                                {% if user == comment.user %}
+                                &nbsp;&nbsp;
+                                    <a href="{% url 'edit_comment' comment.id %}"><i class="fa fa-edit" style="color: gray;"></i></a>
+                                {% endif %}
+
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+                <p class="text-muted">Nenhum comentário ainda.</p>
+            {% endfor %}
+
+            <!-- FORM DE COMENTÁRIO -->
+            <br />
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-secondary">Comentar</button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
