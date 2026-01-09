@@ -7,8 +7,10 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.forms import UserCreationForm, PasswordChangeForm
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 def home(request):
+    # 🔐 USUÁRIO LOGADO
     if request.user.is_authenticated:
         form = BeepForm(request.POST or None)
 
@@ -20,20 +22,16 @@ def home(request):
                 messages.success(request, "Seu Beep foi postado!")
                 return redirect('home')
 
-        # 🔹 perfil do usuário logado
+        # Perfil do usuário logado
         profile = Profile.objects.get(user=request.user)
 
-        # 🔹 perfis que ele segue
-        following_profiles = profile.follows.all()
+        # Usuários que ele segue
+        following_users = profile.follows.all()
 
-        # 🔹 usuários desses perfis
-        following_users = User.objects.filter(
-            profile__in=following_profiles
-        )
-
-        # 🔹 beeps de quem segue + os próprios
+        # Beeps de quem ele segue + dele mesmo
         beeps = Beep.objects.filter(
-            user__in=following_users | User.objects.filter(id=request.user.id)
+            Q(user__profile__in=following_users) |
+            Q(user=request.user)
         ).order_by('-created_at')
 
         return render(request, 'home.html', {
@@ -41,9 +39,13 @@ def home(request):
             'form': form
         })
 
+    # 🔓 USUÁRIO NÃO LOGADO
     else:
-        messages.success(request, "Faça login para ver o feed.")
-        return redirect('login')
+        beeps = Beep.objects.all().order_by('-created_at')[:20]
+
+        return render(request, 'home.html', {
+            'beeps': beeps
+        })
 
 def profile_list(request):
     if request.user.is_authenticated:
